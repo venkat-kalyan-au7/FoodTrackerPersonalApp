@@ -19,6 +19,10 @@ import uploadsRouter from "./modules/uploads/uploads.routes.js";
 
 const app = express();
 
+// Trust reverse proxy (Koyeb / any cloud platform) so that
+// express-rate-limit and req.ip see the real client IP, not the proxy IP.
+app.set("trust proxy", 1);
+
 // Security headers
 app.use(helmet());
 
