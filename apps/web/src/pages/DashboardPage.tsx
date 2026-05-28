@@ -7,10 +7,13 @@ import { CalorieSummary } from "../components/CalorieSummary";
 import { CardSkeleton } from "../components/SkeletonLoader";
 import { EmptyState } from "../components/EmptyState";
 import { MealSection } from "../components/MealSection";
+import { EditFoodLogSheet } from "../components/EditFoodLogSheet";
+import { FoodLog } from "@food-tracker/shared";
 
 export function DashboardPage() {
   const [date, setDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const { data, isLoading } = useDashboard(date);
+  const [editingLog, setEditingLog] = useState<FoodLog | null>(null);
 
   const isToday = date === format(new Date(), "yyyy-MM-dd");
   const displayDate = isToday
@@ -19,6 +22,11 @@ export function DashboardPage() {
 
   return (
     <div className="flex flex-col h-full">
+      <EditFoodLogSheet
+        log={editingLog}
+        date={date}
+        onClose={() => setEditingLog(null)}
+      />
       {/* Header */}
       <div className="bg-white border-b border-gray-100 px-4 pt-safe">
         <div className="flex items-center justify-between h-14">
@@ -76,7 +84,7 @@ export function DashboardPage() {
               (mealType) => {
                 const logs = data.mealBreakdown[mealType] ?? [];
                 return (
-                  <MealSection key={mealType} mealType={mealType} logs={logs} />
+                  <MealSection key={mealType} mealType={mealType} logs={logs} onEdit={setEditingLog} />
                 );
               }
             )}

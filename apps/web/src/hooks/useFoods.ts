@@ -80,6 +80,34 @@ export function useDeleteFoodLog() {
   });
 }
 
+export function useUpdateFoodLog() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      id,
+      consumedWeightG,
+      mealType,
+    }: {
+      id: string;
+      date: string;
+      consumedWeightG: number;
+      mealType: string;
+    }) => {
+      const { data } = await apiClient.patch(`/food-logs/${id}`, {
+        consumedWeightG,
+        mealType,
+      });
+      return data.data;
+    },
+    onSuccess: (_, variables) => {
+      toast.success("Entry updated!");
+      qc.invalidateQueries({ queryKey: ["food-logs", variables.date] });
+      qc.invalidateQueries({ queryKey: ["dashboard"] });
+    },
+    onError: () => toast.error("Failed to update entry"),
+  });
+}
+
 export function useEstimateFood() {
   return useMutation({
     mutationFn: async (query: string): Promise<FoodSearchResult> => {

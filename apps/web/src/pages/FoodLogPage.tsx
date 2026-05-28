@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { format, subDays, addDays } from "date-fns";
-import { ChevronLeft, ChevronRight, Link } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useFoodLogs, useDeleteFoodLog } from "../hooks/useFoods";
 import { MealSection } from "../components/MealSection";
+import { EditFoodLogSheet } from "../components/EditFoodLogSheet";
 import { SkeletonLoader } from "../components/SkeletonLoader";
 import { EmptyState } from "../components/EmptyState";
 import { FoodLog } from "@food-tracker/shared";
@@ -12,6 +13,7 @@ export function FoodLogPage() {
   const [date, setDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const { data: logs, isLoading } = useFoodLogs(date);
   const deleteLog = useDeleteFoodLog();
+  const [editingLog, setEditingLog] = useState<FoodLog | null>(null);
 
   const isToday = date === format(new Date(), "yyyy-MM-dd");
   const displayDate = isToday
@@ -29,6 +31,11 @@ export function FoodLogPage() {
 
   return (
     <div className="flex flex-col h-full">
+      <EditFoodLogSheet
+        log={editingLog}
+        date={date}
+        onClose={() => setEditingLog(null)}
+      />
       <div className="bg-white border-b border-gray-100 px-4 pt-safe">
         <div className="flex items-center justify-between h-14">
           <h1 className="text-lg font-bold text-gray-900">Food Log</h1>
@@ -78,7 +85,7 @@ export function FoodLogPage() {
                 key={meal}
                 mealType={meal}
                 logs={grouped[meal] ?? []}
-                onDelete={handleDelete}
+                onEdit={setEditingLog}
               />
             )
           )

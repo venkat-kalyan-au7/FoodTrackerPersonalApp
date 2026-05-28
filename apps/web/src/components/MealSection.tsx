@@ -1,10 +1,11 @@
 import { FoodLog } from "@food-tracker/shared";
-import { Trash2 } from "lucide-react";
+import { Trash2, ChevronRight } from "lucide-react";
 
 interface MealSectionProps {
   mealType: string;
   logs: FoodLog[];
   onDelete?: (log: FoodLog) => void;
+  onEdit?: (log: FoodLog) => void;
 }
 
 const MEAL_LABELS: Record<string, string> = {
@@ -21,7 +22,7 @@ const MEAL_COLORS: Record<string, string> = {
   SNACKS: "text-purple-600 bg-purple-50",
 };
 
-export function MealSection({ mealType, logs, onDelete }: MealSectionProps) {
+export function MealSection({ mealType, logs, onDelete, onEdit }: MealSectionProps) {
   if (logs.length === 0) return null;
 
   const mealCalories = logs.reduce((sum, l) => sum + l.calculatedCalories, 0);
@@ -46,7 +47,11 @@ export function MealSection({ mealType, logs, onDelete }: MealSectionProps) {
       {/* Food log rows */}
       <div className="divide-y divide-gray-50">
         {logs.map((log) => (
-          <div key={log.id} className="flex items-center gap-3 py-2.5">
+          <div
+            key={log.id}
+            className={`flex items-center gap-3 py-2.5 ${onEdit ? "cursor-pointer active:bg-gray-50 -mx-4 px-4 rounded-xl" : ""}`}
+            onClick={() => onEdit?.(log)}
+          >
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-gray-900 leading-snug">
                 {log.foodNameSnapshot}
@@ -68,9 +73,12 @@ export function MealSection({ mealType, logs, onDelete }: MealSectionProps) {
                 {Math.round(log.calculatedCalories)} kcal
               </p>
             </div>
+            {onEdit && !onDelete && (
+              <ChevronRight size={14} className="text-gray-300 shrink-0" />
+            )}
             {onDelete && (
               <button
-                onClick={() => onDelete(log)}
+                onClick={(e) => { e.stopPropagation(); onDelete(log); }}
                 className="p-1.5 text-gray-300 active:text-red-500 rounded-full touch-manipulation"
               >
                 <Trash2 size={16} />
