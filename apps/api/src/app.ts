@@ -27,9 +27,21 @@ app.set("trust proxy", 1);
 app.use(helmet());
 
 // CORS
+const allowedOrigins = [
+  config.frontendUrl,
+  "http://localhost:5173",
+];
 app.use(
   cors({
-    origin: config.frontendUrl,
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin)) return callback(null, true);
+      // Allow all Vercel preview deployments for this project
+      if (/^https:\/\/calorietracker(-[a-z0-9]+)*-venkat-kalyan-s-projects\.vercel\.app$/.test(origin)) {
+        return callback(null, true);
+      }
+      callback(new Error(`CORS: origin ${origin} not allowed`));
+    },
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
