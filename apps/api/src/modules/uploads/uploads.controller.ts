@@ -37,9 +37,9 @@ async function uploadFile(
     }
 
     const ext = originalname.split(".").pop() ?? "jpg";
-    const filePath = `${pathPrefix}/${req.userId}/${Date.now()}.${ext}`;
+    const filePath = `${pathPrefix}/${req.userId!}/${Date.now()}.${ext}`;
 
-    const supabase = createUserSupabaseClient(req.userToken);
+    const supabase = createUserSupabaseClient(req.userToken!);
     const { error } = await supabase.storage
       .from(BUCKET)
       .upload(filePath, buffer, {
