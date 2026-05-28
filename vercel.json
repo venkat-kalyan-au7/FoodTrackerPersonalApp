@@ -1,5 +1,5 @@
 {
-  "buildCommand": "npm --workspace=@food-tracker/shared run build && npm --workspace=@food-tracker/web run build:ci",
+  "buildCommand": "npm --workspace=@food-tracker/shared run build && npm --workspace=@food-tracker/web run build:vercel",
   "outputDirectory": "apps/web/dist",
   "installCommand": "npm install --include=dev",
   "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
