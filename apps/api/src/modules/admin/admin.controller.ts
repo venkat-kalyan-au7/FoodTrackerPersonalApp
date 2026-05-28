@@ -38,7 +38,9 @@ export async function inviteUserController(
     }
 
     // Send Supabase invite
-    const { data, error } = await adminClient.auth.admin.inviteUserByEmail(email);
+    const { data, error } = await adminClient.auth.admin.inviteUserByEmail(email, {
+      redirectTo: `${process.env.FRONTEND_URL}/set-password`,
+    });
     if (error) throw createError(`Failed to invite user: ${error.message}`, 400);
 
     // Record in audit table

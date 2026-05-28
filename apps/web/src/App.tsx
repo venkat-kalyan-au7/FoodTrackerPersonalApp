@@ -3,6 +3,7 @@ import { Toaster } from "react-hot-toast";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { BottomNavigation } from "./components/BottomNavigation";
 import { LoginPage } from "./pages/LoginPage";
+import { SetPasswordPage } from "./pages/SetPasswordPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { AddFoodPage } from "./pages/AddFoodPage";
 import { FoodLogPage } from "./pages/FoodLogPage";
@@ -45,6 +46,7 @@ export default function App() {
           path="/login"
           element={user ? <Navigate to="/" replace /> : <LoginPage />}
         />
+        <Route path="/set-password" element={<SetPasswordPage />} />
 
         {/* Protected */}
         <Route
