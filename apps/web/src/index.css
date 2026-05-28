@@ -1,0 +1,90 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    @apply bg-gray-50 text-gray-900 font-sans;
+    overscroll-behavior: none;
+  }
+
+  * {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-primary-600 text-white font-semibold py-3 px-6 rounded-xl
+           active:scale-95 transition-all duration-150 min-h-[48px]
+           disabled:opacity-50 disabled:cursor-not-allowed w-full;
+  }
+
+  .btn-secondary {
+    @apply bg-white text-gray-700 font-semibold py-3 px-6 rounded-xl
+           border border-gray-200 active:scale-95 transition-all duration-150
+           min-h-[48px] disabled:opacity-50;
+  }
+
+  .input-field {
+    @apply w-full px-4 py-3 rounded-xl border border-gray-200 bg-white
+           focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent
+           text-base min-h-[48px];
+  }
+
+  .card {
+    @apply bg-white rounded-2xl shadow-sm border border-gray-100 p-4;
+  }
+
+  .badge-verified {
+    @apply inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full
+           bg-green-100 text-green-700;
+  }
+
+  .badge-external {
+    @apply inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full
+           bg-blue-100 text-blue-700;
+  }
+
+  .badge-recipe {
+    @apply inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full
+           bg-purple-100 text-purple-700;
+  }
+
+  .badge-manual {
+    @apply inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full
+           bg-orange-100 text-orange-700;
+  }
+
+  .meal-chip {
+    @apply inline-flex items-center justify-center px-4 py-2 rounded-full text-sm
+           font-medium cursor-pointer transition-all duration-150 min-h-[40px] min-w-[80px];
+  }
+
+  .meal-chip-active {
+    @apply bg-primary-600 text-white;
+  }
+
+  .meal-chip-inactive {
+    @apply bg-gray-100 text-gray-600;
+  }
+}
+
+/* Safe area for mobile notches / home bar */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.pt-safe {
+  padding-top: env(safe-area-inset-top);
+}
+
+/* Numeric input - show numeric keyboard on mobile */
+input[type="number"] {
+  -webkit-appearance: none;
+}
