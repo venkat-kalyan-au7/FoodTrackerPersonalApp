@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { format } from "date-fns";
-import { Search, X, ArrowLeft, AlertTriangle, Sparkles, Loader2 } from "lucide-react";
+import { Search, X, ArrowLeft, AlertTriangle, Sparkles, Loader2, Pencil, Check } from "lucide-react";
 import { useFoodSearch, useRecentFoods, useLogFood, useEstimateFood } from "../hooks/useFoods";
 import { useFavourites, useAddFavourite, useRemoveFavourite } from "../hooks/useFavourites";
 import { FoodCard } from "../components/FoodCard";
@@ -95,96 +95,149 @@ export function AddFoodPage() {
         {/* Header */}
         <div className="bg-white border-b border-gray-100 px-4 pt-safe">
           <div className="flex items-center gap-3 h-14">
-            <button onClick={() => setSelectedFood(null)} className="p-1">
+            <button
+              onClick={() => setSelectedFood(null)}
+              className="p-1 rounded-full active:bg-gray-100"
+              aria-label="Change food"
+            >
               <ArrowLeft size={22} className="text-gray-700" />
             </button>
             <h1 className="text-base font-semibold text-gray-900 truncate flex-1">
-              {selectedFood.name}
+              Log Food
             </h1>
+            <button
+              onClick={() => setSelectedFood(null)}
+              className="text-xs text-primary-600 font-medium px-2.5 py-1 bg-primary-50 rounded-full active:bg-primary-100"
+            >
+              Change
+            </button>
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-4 py-4 pb-32 space-y-4">
+        <div className="flex-1 overflow-y-auto px-4 py-4 pb-32 space-y-3">
+          {/* Food name card */}
+          <div className="card-elevated flex items-start gap-3">
+            <div className="w-10 h-10 rounded-xl bg-primary-100 flex items-center justify-center shrink-0">
+              <span className="text-xl">🍽️</span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold text-gray-900 text-sm leading-snug">
+                {selectedFood.name}
+              </p>
+              <p className="text-xs text-gray-400 mt-0.5">
+                {selectedFood.caloriesPer100g} kcal · 100g
+              </p>
+            </div>
+          </div>
+
           {/* Variation warning */}
           {selectedFood.requiresVariationWarning && (
             <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 flex gap-2">
               <AlertTriangle size={16} className="text-amber-500 shrink-0 mt-0.5" />
               <p className="text-xs text-amber-700">
-                Calorie values for this dish may vary with your recipe or
-                restaurant. Use as an estimate.
+                Calorie values may vary with your recipe or restaurant. Use as an estimate.
               </p>
             </div>
           )}
 
-          {/* Calorie + macro preview */}
-          <div className="card text-center">
-            <p className="text-4xl font-bold text-primary-600">
-              {estimatedCalories ?? "–"}
-            </p>
-            <p className="text-sm text-gray-400 mt-1">estimated kcal</p>
-            <p className="text-xs text-gray-400 mt-0.5">
-              {selectedFood.caloriesPer100g} kcal / 100g
-            </p>
-            {(estimatedProtein != null || estimatedCarbs != null || estimatedFat != null) && (
-              <div className="grid grid-cols-4 gap-2 mt-4 pt-3 border-t border-gray-100">
-                {[
-                  { label: "Protein", value: estimatedProtein, color: "text-blue-600" },
-                  { label: "Carbs",   value: estimatedCarbs,   color: "text-yellow-600" },
-                  { label: "Fat",     value: estimatedFat,     color: "text-orange-600" },
-                  { label: "Fiber",   value: estimatedFiber,   color: "text-green-600" },
-                ].map(({ label, value, color }) => (
-                  <div key={label} className="text-center">
-                    <p className={`text-sm font-bold ${color}`}>{value ?? "–"}<span className="text-xs font-normal text-gray-400">g</span></p>
-                    <p className="text-xs text-gray-400">{label}</p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
           {/* Weight input */}
           <div className="card">
-            <label className="text-sm font-medium text-gray-700 block mb-2">
-              Amount (grams)
-            </label>
-            <input
-              type="number"
-              inputMode="decimal"
-              min="1"
-              max="2000"
-              className="input-field text-xl font-semibold"
-              value={weightG}
-              onChange={(e) => setWeightG(e.target.value)}
-              placeholder="100"
-            />
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-sm font-semibold text-gray-700">
+                Quantity
+              </label>
+              <span className="text-xs text-gray-400">grams</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <input
+                type="number"
+                inputMode="decimal"
+                min="1"
+                max="2000"
+                className="input-field text-2xl font-bold text-gray-900 flex-1"
+                value={weightG}
+                onChange={(e) => setWeightG(e.target.value)}
+                placeholder="100"
+              />
+            </div>
             {/* Quick presets */}
-            {selectedFood.defaultServingWeightG && (
-              <div className="flex gap-2 mt-2 flex-wrap">
+            <div className="flex gap-2 mt-3 flex-wrap">
+              {[
+                ...(selectedFood.defaultServingWeightG
+                  ? [{ label: `1 serving (${selectedFood.defaultServingWeightG}g)`, value: selectedFood.defaultServingWeightG }]
+                  : []),
+                { label: "50g", value: 50 },
+                { label: "100g", value: 100 },
+                { label: "150g", value: 150 },
+                { label: "200g", value: 200 },
+              ].map((p) => (
+                <button
+                  key={p.value}
+                  onClick={() => setWeightG(String(p.value))}
+                  className={`text-xs px-3 py-1.5 rounded-full font-medium transition-colors ${
+                    weightG === String(p.value)
+                      ? "bg-primary-600 text-white"
+                      : "bg-gray-100 text-gray-600 active:bg-gray-200"
+                  }`}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Nutrition preview */}
+          <div className="card">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-sm font-semibold text-gray-700">Nutrition preview</p>
+              <span className="text-xs text-gray-400">for {weightG || "–"}g</span>
+            </div>
+
+            {/* Calorie highlight */}
+            <div className="bg-primary-50 rounded-xl px-4 py-3 flex items-center justify-between mb-3">
+              <span className="text-sm font-medium text-primary-700">Calories</span>
+              <span className="text-2xl font-bold text-primary-700 tabular-nums">
+                {estimatedCalories ?? "–"}
+                <span className="text-sm font-normal text-primary-400 ml-1">kcal</span>
+              </span>
+            </div>
+
+            {/* Macro rows */}
+            {(estimatedProtein != null || estimatedCarbs != null || estimatedFat != null) && (
+              <div className="space-y-2">
                 {[
-                  {
-                    label: `1 serving (${selectedFood.defaultServingWeightG}g)`,
-                    value: selectedFood.defaultServingWeightG,
-                  },
-                  { label: "50g", value: 50 },
-                  { label: "100g", value: 100 },
-                  { label: "150g", value: 150 },
-                  { label: "200g", value: 200 },
-                ].map((p) => (
-                  <button
-                    key={p.value}
-                    onClick={() => setWeightG(String(p.value))}
-                    className="text-xs bg-gray-100 text-gray-600 px-3 py-1.5 rounded-full"
-                  >
-                    {p.label}
-                  </button>
-                ))}
+                  { label: "Protein", value: estimatedProtein, unit: "g", bar: "bg-blue-400", bg: "bg-blue-50", text: "text-blue-700", per100: selectedFood.proteinPer100g },
+                  { label: "Carbs",   value: estimatedCarbs,   unit: "g", bar: "bg-amber-400", bg: "bg-amber-50", text: "text-amber-700", per100: selectedFood.carbsPer100g },
+                  { label: "Fat",     value: estimatedFat,     unit: "g", bar: "bg-orange-400", bg: "bg-orange-50", text: "text-orange-700", per100: selectedFood.fatPer100g },
+                  { label: "Fiber",   value: estimatedFiber,   unit: "g", bar: "bg-green-400", bg: "bg-green-50", text: "text-green-700", per100: selectedFood.fiberPer100g },
+                ]
+                  .filter(({ value }) => value != null)
+                  .map(({ label, value, unit, bar, bg, text, per100 }) => {
+                    const pct = per100 != null && per100 > 0 ? Math.min(((value ?? 0) / (per100)) * 100, 100) : 0;
+                    return (
+                      <div key={label} className={`${bg} rounded-xl px-3 py-2`}>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className={`text-xs font-semibold ${text}`}>{label}</span>
+                          <span className={`text-sm font-bold ${text} tabular-nums`}>
+                            {value}{unit}
+                          </span>
+                        </div>
+                        <div className="h-1.5 bg-white/60 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full ${bar} rounded-full transition-all duration-500`}
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
               </div>
             )}
           </div>
 
           {/* Meal type */}
           <div className="card">
-            <label className="text-sm font-medium text-gray-700 block mb-2">
+            <label className="text-sm font-semibold text-gray-700 block mb-2">
               Meal
             </label>
             <div className="flex gap-2 flex-wrap">
@@ -203,14 +256,18 @@ export function AddFoodPage() {
           </div>
         </div>
 
-        {/* Log button — sits above the bottom navigation bar */}
-        <div className="fixed bottom-16 inset-x-0 bg-white border-t border-gray-200 px-4 py-3 z-50">
+        {/* Log button */}
+        <div className="fixed bottom-16 inset-x-0 bg-white/95 backdrop-blur-sm border-t border-gray-100 px-4 py-3 z-50">
           <button
             onClick={handleLog}
             disabled={logFood.isPending || !weightG}
-            className="btn-primary"
+            className="btn-primary flex items-center justify-center gap-2"
           >
-            {logFood.isPending ? "Logging..." : "Log Food"}
+            {logFood.isPending ? (
+              <><Loader2 size={16} className="animate-spin" /> Logging...</>
+            ) : (
+              <><Check size={16} strokeWidth={2.5} /> Log {estimatedCalories ? `${estimatedCalories} kcal` : "Food"}</>
+            )}
           </button>
         </div>
       </div>
