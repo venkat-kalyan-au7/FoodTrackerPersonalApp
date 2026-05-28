@@ -1,6 +1,6 @@
 {
-  "buildCommand": "npm --workspace=@food-tracker/shared run build && cd apps/web && npx vite build",
-  "outputDirectory": "apps/web/dist",
+  "buildCommand": "npm --workspace=@food-tracker/shared run build && npx vite build",
+  "outputDirectory": "dist",
   "installCommand": "npm install --include=dev",
   "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
 }
