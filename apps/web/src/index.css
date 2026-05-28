@@ -20,9 +20,9 @@
 
 @layer components {
   .btn-primary {
-    @apply bg-primary-600 text-white font-semibold py-3 px-6 rounded-xl
+    @apply bg-gradient-to-br from-primary-600 to-primary-500 text-white font-semibold py-3 px-6 rounded-xl
            active:scale-95 transition-all duration-150 min-h-[48px]
-           disabled:opacity-50 disabled:cursor-not-allowed w-full;
+           disabled:opacity-50 disabled:cursor-not-allowed w-full shadow-sm;
   }
 
   .btn-secondary {
@@ -33,12 +33,16 @@
 
   .input-field {
     @apply w-full px-4 py-3 rounded-xl border border-gray-200 bg-white
-           focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent
-           text-base min-h-[48px];
+           focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-400
+           text-base min-h-[48px] transition-colors duration-150 placeholder:text-gray-300;
   }
 
   .card {
     @apply bg-white rounded-2xl shadow-sm border border-gray-100 p-4;
+  }
+
+  .card-elevated {
+    @apply bg-white rounded-2xl shadow-md border border-gray-100 p-4;
   }
 
   .badge-verified {
@@ -87,4 +91,19 @@
 /* Numeric input - show numeric keyboard on mobile */
 input[type="number"] {
   -webkit-appearance: none;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-up {
+  animation: slideUp 0.18s ease-out forwards;
 }

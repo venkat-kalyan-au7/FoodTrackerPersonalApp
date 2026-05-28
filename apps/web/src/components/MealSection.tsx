@@ -8,10 +8,10 @@ interface MealSectionProps {
 }
 
 const MEAL_LABELS: Record<string, string> = {
-  BREAKFAST: "Breakfast",
-  LUNCH: "Lunch",
-  DINNER: "Dinner",
-  SNACKS: "Snacks",
+  BREAKFAST: "🌅 Breakfast",
+  LUNCH: "☀️ Lunch",
+  DINNER: "🌙 Dinner",
+  SNACKS: "🍎 Snacks",
 };
 
 const MEAL_COLORS: Record<string, string> = {
@@ -31,14 +31,15 @@ export function MealSection({ mealType, logs, onDelete }: MealSectionProps) {
       {/* Meal header */}
       <div className="flex items-center justify-between mb-3">
         <span
-          className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
+          className={`text-xs font-semibold px-3 py-1 rounded-full ${
             MEAL_COLORS[mealType] ?? "text-gray-600 bg-gray-50"
           }`}
         >
           {MEAL_LABELS[mealType] ?? mealType}
         </span>
-        <span className="text-sm font-semibold text-gray-600">
-          {Math.round(mealCalories)} kcal
+        <span className="text-sm font-bold text-gray-700">
+          {Math.round(mealCalories)}
+          <span className="text-xs font-normal text-gray-400 ml-0.5">kcal</span>
         </span>
       </div>
 

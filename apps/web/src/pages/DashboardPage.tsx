@@ -25,9 +25,9 @@ export function DashboardPage() {
           <h1 className="text-lg font-bold text-gray-900">Dashboard</h1>
           <Link
             to="/add-food"
-            className="flex items-center gap-1 text-primary-600 font-medium text-sm"
+            className="flex items-center gap-1.5 bg-primary-600 text-white text-sm font-semibold px-3.5 py-1.5 rounded-full active:scale-95 transition-all shadow-sm"
           >
-            <Plus size={18} />
+            <Plus size={14} strokeWidth={2.5} />
             Add
           </Link>
         </div>
