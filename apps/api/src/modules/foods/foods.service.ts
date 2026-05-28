@@ -137,7 +137,7 @@ export async function getRecentFoods(
   const results: FoodSearchResult[] = [];
 
   for (const row of data) {
-    const food = row.foods as Record<string, unknown> | null;
+    const food = (row.foods as unknown) as Record<string, unknown> | null;
     if (food && !seen.has(row.food_id as string)) {
       seen.add(row.food_id as string);
       results.push({
@@ -181,7 +181,7 @@ export async function estimateAndCacheFood(
         adminClient,
         u.fdcId,
         u.name,
-        u.caloriesPer100g,
+        u.caloriesPer100g!,
         u.proteinPer100g,
         u.carbsPer100g,
         u.fatPer100g,

@@ -12,6 +12,8 @@ function optionalEnv(key: string, defaultValue: string = ""): string {
   return process.env[key] ?? defaultValue;
 }
 
+const _uploadMaxMb = parseInt(optionalEnv("MAX_IMAGE_UPLOAD_MB", "2"), 10);
+
 export const config = {
   nodeEnv: optionalEnv("NODE_ENV", "development"),
   port: parseInt(optionalEnv("PORT", "4000"), 10),
@@ -38,7 +40,10 @@ export const config = {
   },
 
   upload: {
-    maxMb: parseInt(optionalEnv("MAX_IMAGE_UPLOAD_MB", "2"), 10),
+    maxMb: _uploadMaxMb,
+    maxSizeMb: _uploadMaxMb,
+    maxSizeBytes: _uploadMaxMb * 1024 * 1024,
+    allowedTypes: ["image/jpeg", "image/png", "image/webp", "image/gif"],
   },
 
   isDevelopment(): boolean {

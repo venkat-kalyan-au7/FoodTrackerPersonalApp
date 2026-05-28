@@ -112,7 +112,7 @@ export async function getDashboardData(
     .limit(5);
 
   const favouriteFoods: FoodSearchResult[] = (favData ?? []).map((f) => {
-    const food = f.foods as Record<string, unknown>;
+    const food = (f.foods as unknown) as Record<string, unknown>;
     return {
       id: food.id as string,
       name: food.name as string,

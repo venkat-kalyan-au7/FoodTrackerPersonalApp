@@ -13,7 +13,7 @@
     "declaration": true,
     "sourceMap": true,
     "paths": {
-      "@food-tracker/shared": ["../../packages/shared/src/index.ts"]
+      "@food-tracker/shared": ["../../packages/shared/dist/index"]
     }
   },
   "include": ["src/**/*"],

@@ -59,7 +59,7 @@ export async function searchFoodsInDb(
     .limit(5);
 
   for (const row of favFoods ?? []) {
-    const food = row.foods as Record<string, unknown> | null;
+    const food = (row.foods as unknown) as Record<string, unknown> | null;
     if (
       food &&
       !seenIds.has(food.id as string) &&
@@ -81,7 +81,7 @@ export async function searchFoodsInDb(
     .limit(5);
 
   for (const row of recentLogs ?? []) {
-    const food = row.foods as Record<string, unknown> | null;
+    const food = (row.foods as unknown) as Record<string, unknown> | null;
     if (food && !seenIds.has(food.id as string)) {
       results.push(mapToSearchResult(food));
       seenIds.add(food.id as string);
@@ -111,7 +111,7 @@ export async function searchFoodsInDb(
     .limit(5);
 
   for (const row of aliases ?? []) {
-    const food = row.foods as Record<string, unknown> | null;
+    const food = (row.foods as unknown) as Record<string, unknown> | null;
     if (food && !seenIds.has(food.id as string)) {
       results.push(mapToSearchResult(food));
       seenIds.add(food.id as string);

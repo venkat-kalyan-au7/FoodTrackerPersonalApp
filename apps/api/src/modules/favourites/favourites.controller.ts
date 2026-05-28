@@ -21,7 +21,7 @@ export async function getFavouritesController(
     const result = (data ?? []).map((row) => ({
       id: row.food_id,
       addedAt: row.created_at,
-      ...(row.foods as Record<string, unknown>),
+      ...(row.foods as unknown as Record<string, unknown>),
     }));
 
     res.json({ success: true, data: result });
