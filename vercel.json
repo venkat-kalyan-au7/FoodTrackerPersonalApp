@@ -1,5 +1,5 @@
 {
-  "buildCommand": "npm run build --workspace=packages/shared && npm run build --workspace=apps/web",
+  "buildCommand": "npm --workspace=@food-tracker/shared run build && npm --workspace=@food-tracker/web run build",
   "outputDirectory": "apps/web/dist",
   "installCommand": "npm install --include=dev",
   "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
