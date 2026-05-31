@@ -25,11 +25,6 @@ export const config = {
     serviceRoleKey: requireEnv("SUPABASE_SERVICE_ROLE_KEY"),
   },
 
-  usda: {
-    apiKey: optionalEnv("USDA_FDC_API_KEY"),
-    baseUrl: "https://api.nal.usda.gov/fdc/v1",
-  },
-
   ai: {
     enabled: optionalEnv("ENABLE_AI_FOOD_MATCHING", "false") === "true",
     provider: optionalEnv("AI_PROVIDER", "GEMINI"),

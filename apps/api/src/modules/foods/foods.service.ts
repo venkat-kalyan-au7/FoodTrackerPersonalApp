@@ -4,11 +4,9 @@ import {
   searchFoodsInDb,
   getFoodById,
   createManualFood,
-  cacheFoodFromUsda,
   cacheFoodFromOFF,
   cacheAiFood,
 } from "./foods.repository.js";
-import { searchUsdaFoods } from "../../integrations/usdaFoodDataCentral/usda.service.js";
 import { searchOpenFoodFacts } from "../../integrations/openFoodFacts/off.service.js";
 import { getAiService, GeminiAiFoodMatchingService } from "../../integrations/gemini/gemini.service.js";
 import { config } from "../../config/index.js";
@@ -75,55 +73,7 @@ export async function searchFoods(
     // OFF unavailable, continue
   }
 
-  // Third pass: USDA FoodData Central (US database, useful for generic items)
-  let usdaResults: Awaited<ReturnType<typeof searchUsdaFoods>> = [];
-  try {
-    usdaResults = await searchUsdaFoods(query, 5);
-  } catch {
-    // USDA API unavailable or key invalid — continue with local results only
-  }
-
-  for (const usdaFood of usdaResults) {
-    if (!usdaFood.caloriesPer100g) continue;
-
-    try {
-      const cachedFood = await cacheFoodFromUsda(
-        adminClient,
-        usdaFood.fdcId,
-        usdaFood.name,
-        usdaFood.caloriesPer100g,
-        usdaFood.proteinPer100g,
-        usdaFood.carbsPer100g,
-        usdaFood.fatPer100g,
-        usdaFood.fiberPer100g,
-        usdaFood
-      );
-
-      if (!localResults.find((r) => r.id === cachedFood.id)) {
-        localResults.push({
-          id: cachedFood.id,
-          name: cachedFood.name,
-          foodType: cachedFood.foodType,
-          sourceType: cachedFood.sourceType,
-          caloriesPer100g: cachedFood.caloriesPer100g,
-          proteinPer100g: cachedFood.proteinPer100g,
-          carbsPer100g: cachedFood.carbsPer100g,
-          fatPer100g: cachedFood.fatPer100g,
-          fiberPer100g: cachedFood.fiberPer100g,
-          defaultServingName: cachedFood.defaultServingName,
-          defaultServingWeightG: cachedFood.defaultServingWeightG,
-          isVerified: cachedFood.isVerified,
-          requiresVariationWarning: cachedFood.requiresVariationWarning,
-          imageUrl: cachedFood.imagePath,
-          description: cachedFood.description,
-        });
-      }
-    } catch {
-      // Best effort caching, don't fail the search
-    }
-  }
-
-  // Third pass: AI normalization if still insufficient and AI is enabled
+  // Third pass: AI normalization if still insufficient
   const aiService = getAiService();
   if (aiService && localResults.length < 3) {
     try {
@@ -252,50 +202,12 @@ export async function estimateAndCacheFood(
         description: food.description,
       };
     } catch (aiErr) {
-      // Capture the real AI error so we can surface it if USDA also fails
+      // Capture the real AI error so we can surface it
       aiErrorMessage = aiErr instanceof Error ? aiErr.message : String(aiErr);
     }
   }
 
-  // 2. Fallback: USDA (if AI unavailable or failed)
-  try {
-    const usdaResults = await searchUsdaFoods(query, 1);
-    if (usdaResults.length > 0 && usdaResults[0].caloriesPer100g) {
-      const u = usdaResults[0];
-      const food = await cacheFoodFromUsda(
-        adminClient,
-        u.fdcId,
-        u.name,
-        u.caloriesPer100g!,
-        u.proteinPer100g,
-        u.carbsPer100g,
-        u.fatPer100g,
-        u.fiberPer100g,
-        u
-      );
-      return {
-        id: food.id,
-        name: food.name,
-        foodType: food.foodType,
-        sourceType: food.sourceType,
-        caloriesPer100g: food.caloriesPer100g,
-        proteinPer100g: food.proteinPer100g,
-        carbsPer100g: food.carbsPer100g,
-        fatPer100g: food.fatPer100g,
-        fiberPer100g: food.fiberPer100g,
-        defaultServingName: food.defaultServingName,
-        defaultServingWeightG: food.defaultServingWeightG,
-        isVerified: food.isVerified,
-        requiresVariationWarning: food.requiresVariationWarning,
-        imageUrl: food.imagePath,
-        description: food.description,
-      };
-    }
-  } catch {
-    // USDA unavailable, continue to error
-  }
-
-  // Both AI and USDA failed — return a clear 422 with the real reason
+  // AI failed or unavailable — return a clear error with the real reason
   if (!config.ai.geminiApiKey) {
     throw createError("GEMINI_API_KEY is not set on the server. Please add it to your environment variables.", 503);
   }
