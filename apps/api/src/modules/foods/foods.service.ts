@@ -10,7 +10,8 @@ import {
 } from "./foods.repository.js";
 import { searchUsdaFoods } from "../../integrations/usdaFoodDataCentral/usda.service.js";
 import { searchOpenFoodFacts } from "../../integrations/openFoodFacts/off.service.js";
-import { getAiService } from "../../integrations/gemini/gemini.service.js";
+import { getAiService, GeminiAiFoodMatchingService } from "../../integrations/gemini/gemini.service.js";
+import { config } from "../../config/index.js";
 import { getAdminSupabaseClient } from "../../integrations/supabase/client.js";
 import { CreateManualFood } from "./foods.schemas.js";
 
@@ -220,7 +221,11 @@ export async function estimateAndCacheFood(
   const adminClient = getAdminSupabaseClient();
 
   // 1. Try Gemini AI first — most accurate for Indian foods
-  const aiService = getAiService();
+  // Use key directly so this always works when GEMINI_API_KEY is set,
+  // regardless of the ENABLE_AI_FOOD_MATCHING feature flag.
+  const aiService = config.ai.geminiApiKey
+    ? new GeminiAiFoodMatchingService()
+    : getAiService();
   if (aiService) {
     try {
       const estimate = await aiService.estimateFoodNutrition(query);
@@ -285,5 +290,5 @@ export async function estimateAndCacheFood(
     // USDA unavailable
   }
 
-  throw new Error("Could not estimate nutrition. Please add GEMINI_API_KEY to enable AI estimation.");
+  throw new Error("Could not estimate nutrition. Please set GEMINI_API_KEY in your server environment variables.");
 }
