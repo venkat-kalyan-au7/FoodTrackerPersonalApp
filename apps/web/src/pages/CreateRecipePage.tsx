@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { ArrowLeft, Plus, Trash2, Sparkles, Loader2, CheckCircle2, AlertCircle, Search, X } from "lucide-react";
 import { useCreateRecipe, useExtractIngredients } from "../hooks/useRecipes";
-import { useFoodSearch } from "../hooks/useFoods";
+import { useFoodSearch, useEstimateFood } from "../hooks/useFoods";
 import { FoodSearchResult } from "@food-tracker/shared";
 import toast from "react-hot-toast";
 
@@ -36,6 +36,7 @@ export function CreateRecipePage() {
   const [showExtract, setShowExtract] = useState(false);
 
   const { data: searchResults } = useFoodSearch(ingredientQuery, ingredientQuery.length > 0);
+  const estimateFood = useEstimateFood();
 
   const {
     register,
@@ -87,6 +88,16 @@ export function CreateRecipePage() {
       })),
     });
     navigate("/recipes");
+  };
+
+  const handleEstimateIngredient = async (index: number) => {
+    if (!ingredientQuery.trim()) return;
+    try {
+      const food = await estimateFood.mutateAsync(ingredientQuery.trim());
+      handlePickFood(food, index);
+    } catch {
+      toast.error("Could not estimate — check your Gemini API key.");
+    }
   };
 
   const handlePickFood = (food: FoodSearchResult, index: number) => {
@@ -322,9 +333,28 @@ export function CreateRecipePage() {
                           </button>
                         </div>
 
+                        {/* AI estimate — always shown when query is typed */}
+                        {ingredientQuery.trim().length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => handleEstimateIngredient(index)}
+                            disabled={estimateFood.isPending}
+                            className="mt-2 w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-gradient-to-r from-primary-600 to-primary-500 text-white font-semibold text-xs shadow-sm active:opacity-90"
+                          >
+                            {estimateFood.isPending
+                              ? <><Loader2 size={13} className="animate-spin" /> Estimating with AI…</>
+                              : <><Sparkles size={13} /> Estimate "{ingredientQuery}" with AI</>}
+                          </button>
+                        )}
+
                         {/* Search results dropdown */}
                         {searchResults && searchResults.length > 0 && (
                           <div className="mt-1.5 border border-gray-200 rounded-xl overflow-hidden shadow-md max-h-48 overflow-y-auto bg-white">
+                            {ingredientQuery.trim().length > 0 && (
+                              <p className="text-[10px] font-semibold text-gray-400 px-3 py-1.5 uppercase tracking-wide bg-gray-50">
+                                Search results
+                              </p>
+                            )}
                             {searchResults.map((food) => (
                               <button
                                 key={food.id}
@@ -341,7 +371,7 @@ export function CreateRecipePage() {
                           </div>
                         )}
                         {ingredientQuery.length > 1 && (!searchResults || searchResults.length === 0) && (
-                          <p className="text-xs text-gray-400 mt-1.5 px-1">No results — try a different name</p>
+                          <p className="text-xs text-gray-400 mt-1.5 px-1">No results — try a different name or use AI above</p>
                         )}
                       </div>
                     ) : isMatched ? (
