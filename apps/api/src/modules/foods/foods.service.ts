@@ -202,8 +202,16 @@ export async function estimateAndCacheFood(
         description: food.description,
       };
     } catch (aiErr) {
-      // Capture the real AI error so we can surface it
-      aiErrorMessage = aiErr instanceof Error ? aiErr.message : String(aiErr);
+      // Parse 429 rate-limit errors into a clean user-facing message
+      const rawMsg = aiErr instanceof Error ? aiErr.message : String(aiErr);
+      const retryMatch = rawMsg.match(/retry(?:Delay|\s+in)[:\s]+["']?(\d+)/);
+      const retrySeconds = retryMatch ? parseInt(retryMatch[1], 10) : null;
+      if (rawMsg.includes("429") || rawMsg.toLowerCase().includes("quota")) {
+        const waitMsg = retrySeconds ? ` Please try again in ${retrySeconds} seconds.` : " Please try again in a minute.";
+        aiErrorMessage = `AI rate limit reached (free tier).${waitMsg}`;
+      } else {
+        aiErrorMessage = rawMsg;
+      }
     }
   }
 

@@ -28,8 +28,8 @@ export const config = {
   ai: {
     enabled: optionalEnv("ENABLE_AI_FOOD_MATCHING", "false") === "true",
     provider: optionalEnv("AI_PROVIDER", "GEMINI"),
-    model: optionalEnv("AI_MODEL", "gemini-2.5-flash-lite"),
-    advancedModel: optionalEnv("AI_ADVANCED_MODEL", "gemini-2.5-flash"),
+    model: optionalEnv("AI_MODEL", "gemini-2.0-flash-lite"),
+    advancedModel: optionalEnv("AI_ADVANCED_MODEL", "gemini-2.0-flash"),
     futureModel: optionalEnv("AI_FUTURE_MODEL", ""),
     geminiApiKey: optionalEnv("GEMINI_API_KEY"),
   },
