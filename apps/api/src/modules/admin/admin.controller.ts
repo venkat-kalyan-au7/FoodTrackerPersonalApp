@@ -70,7 +70,42 @@ export async function getInvitationsController(
       .order("created_at", { ascending: false });
 
     if (error) throw createError("Failed to get invitations", 500);
-    res.json({ success: true, data: data ?? [] });
+
+    const rows = data ?? [];
+
+    // Cross-check PENDING invitations against Supabase auth.users so we
+    // reflect the real status (accepted = user exists & email confirmed).
+    const pendingRows = rows.filter((inv) => inv.status === "PENDING");
+    if (pendingRows.length > 0) {
+      const { data: authData } = await adminClient.auth.admin.listUsers({ perPage: 1000 });
+      const authUsers = authData?.users ?? [];
+
+      // Build a map of confirmed email → confirmed_at timestamp
+      const confirmedMap = new Map<string, string>();
+      for (const u of authUsers) {
+        if (u.email && u.email_confirmed_at) {
+          confirmedMap.set(u.email.toLowerCase(), u.email_confirmed_at);
+        }
+      }
+
+      // For each PENDING row whose email is now confirmed, update DB + local row
+      await Promise.all(
+        pendingRows
+          .filter((inv) => confirmedMap.has(inv.invited_email.toLowerCase()))
+          .map(async (inv) => {
+            const confirmedAt = confirmedMap.get(inv.invited_email.toLowerCase())!;
+            await adminClient
+              .from("invitations_audit")
+              .update({ status: "ACCEPTED", accepted_at: confirmedAt })
+              .eq("id", inv.id);
+            // mutate in-memory row so the response is immediately correct
+            inv.status = "ACCEPTED";
+            inv.accepted_at = confirmedAt;
+          })
+      );
+    }
+
+    res.json({ success: true, data: rows });
   } catch (err) {
     next(err);
   }

@@ -19,6 +19,7 @@ interface Invitation {
   status: string;
   created_at: string;
   accepted_at: string | null;
+  invited_by_user_id: string;
 }
 
 interface AiStats {
@@ -208,11 +209,9 @@ export function AdminPage() {
                   <div>
                     <p className="text-sm font-medium text-gray-800">{inv.invited_email}</p>
                     <p className="text-xs text-gray-400">
-                      {new Date(inv.created_at).toLocaleDateString(undefined, {
-                        day: "numeric",
-                        month: "short",
-                        year: "numeric",
-                      })}
+                      {inv.status === "ACCEPTED" && inv.accepted_at
+                        ? `Accepted ${new Date(inv.accepted_at).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}`
+                        : `Invited ${new Date(inv.created_at).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}`}
                     </p>
                   </div>
                   <span
