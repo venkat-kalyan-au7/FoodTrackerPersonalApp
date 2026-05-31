@@ -1,5 +1,5 @@
 import { SupabaseClient } from "@supabase/supabase-js";
-import { FoodSearchResult, Food, AI_CONFIDENCE } from "@food-tracker/shared";
+import { FoodSearchResult, Food } from "@food-tracker/shared";
 import {
   searchFoodsInDb,
   getFoodById,
@@ -8,7 +8,7 @@ import {
   cacheAiFood,
 } from "./foods.repository.js";
 import { searchOpenFoodFacts } from "../../integrations/openFoodFacts/off.service.js";
-import { getAiService, GeminiAiFoodMatchingService } from "../../integrations/gemini/gemini.service.js";
+import { GeminiAiFoodMatchingService, getAiService } from "../../integrations/gemini/gemini.service.js";
 import { config } from "../../config/index.js";
 import { createError } from "../../middleware/error.middleware.js";
 import { getAdminSupabaseClient } from "../../integrations/supabase/client.js";
@@ -29,9 +29,9 @@ export async function searchFoods(
 
   const adminClient = getAdminSupabaseClient();
 
-  // Second pass: Open Food Facts (Indian + global packaged foods, no API key)
+  // Second pass: Open Food Facts — India region first, then global (no API key)
   try {
-    const offResults = await searchOpenFoodFacts(query, 5);
+    const offResults = await searchOpenFoodFacts(query, 10);
     for (const off of offResults) {
       if (!off.caloriesPer100g) continue;
       try {
@@ -73,32 +73,7 @@ export async function searchFoods(
     // OFF unavailable, continue
   }
 
-  // Third pass: AI normalization if still insufficient
-  const aiService = getAiService();
-  if (aiService && localResults.length < 3) {
-    try {
-      const normalized = await aiService.normalizeFoodName(query);
-      if (
-        normalized.confidence >= AI_CONFIDENCE.MEDIUM &&
-        normalized.normalizedFoodName.toLowerCase() !== query.toLowerCase()
-      ) {
-        const aiSearchResults = await searchFoodsInDb(
-          userClient,
-          userId,
-          normalized.normalizedFoodName,
-          5
-        );
-        for (const result of aiSearchResults) {
-          if (!localResults.find((r) => r.id === result.id)) {
-            localResults.push(result);
-          }
-        }
-      }
-    } catch {
-      // AI is optional, continue without it
-    }
-  }
-
+  // No automatic AI calls — user must explicitly click "Estimate with AI"
   return localResults.slice(0, limit);
 }
 

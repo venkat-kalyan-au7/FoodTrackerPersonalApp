@@ -1,8 +1,11 @@
 // Open Food Facts – free & open-source global food database
 // No API key required. Has strong Indian packaged food & recipe data.
 // Docs: https://wiki.openfoodfacts.org/API
+// India-specific domain (in.openfoodfacts.org) is searched first to surface
+// desi / regional products ahead of global packaged goods.
 
-const BASE_URL = "https://world.openfoodfacts.org";
+const INDIA_BASE_URL = "https://in.openfoodfacts.org";
+const WORLD_BASE_URL = "https://world.openfoodfacts.org";
 const USER_AGENT = "FoodTrackerApp/1.0 (contact@example.com)"; // OFF recommends a UA
 
 export interface OFFNormalizedFood {
@@ -63,11 +66,12 @@ function normalizeOFFProduct(p: OFFProduct): OFFNormalizedFood | null {
   };
 }
 
-export async function searchOpenFoodFacts(
+async function fetchOFF(
+  baseUrl: string,
   query: string,
-  pageSize = 5
+  pageSize: number
 ): Promise<OFFNormalizedFood[]> {
-  const url = new URL(`${BASE_URL}/cgi/search.pl`);
+  const url = new URL(`${baseUrl}/cgi/search.pl`);
   url.searchParams.set("search_terms", query);
   url.searchParams.set("search_simple", "1");
   url.searchParams.set("json", "1");
@@ -79,17 +83,43 @@ export async function searchOpenFoodFacts(
 
   const response = await fetch(url.toString(), {
     headers: { "User-Agent": USER_AGENT },
-    signal: AbortSignal.timeout(6000),
+    signal: AbortSignal.timeout(5000),
   });
 
-  if (!response.ok) {
-    throw new Error(`Open Food Facts error: ${response.status}`);
-  }
+  if (!response.ok) return [];
 
   const data = (await response.json()) as OFFSearchResponse;
-
   return (data.products ?? [])
     .map(normalizeOFFProduct)
-    .filter((f): f is OFFNormalizedFood => f !== null)
-    .slice(0, pageSize);
+    .filter((f): f is OFFNormalizedFood => f !== null);
+}
+
+/**
+ * Search Open Food Facts – India region first (desi / regional foods),
+ * then backfill with global results. Deduplicates by offId.
+ */
+export async function searchOpenFoodFacts(
+  query: string,
+  pageSize = 10
+): Promise<OFFNormalizedFood[]> {
+  // Run both in parallel; India results are prioritised
+  const [indiaResults, worldResults] = await Promise.allSettled([
+    fetchOFF(INDIA_BASE_URL, query, pageSize),
+    fetchOFF(WORLD_BASE_URL, query, pageSize),
+  ]);
+
+  const india = indiaResults.status === "fulfilled" ? indiaResults.value : [];
+  const world = worldResults.status === "fulfilled" ? worldResults.value : [];
+
+  // India-first, then append world items not already present
+  const seen = new Set(india.map((f) => f.offId));
+  const merged = [...india];
+  for (const f of world) {
+    if (!seen.has(f.offId)) {
+      seen.add(f.offId);
+      merged.push(f);
+    }
+  }
+
+  return merged.slice(0, pageSize);
 }
