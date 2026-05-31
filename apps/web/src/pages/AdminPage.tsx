@@ -1,8 +1,7 @@
-import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Loader2, Mail, Users } from "lucide-react";
+import { Loader2, Mail, Users, Sparkles, Database, Check, X } from "lucide-react";
 import apiClient from "../lib/api";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import toast from "react-hot-toast";
@@ -22,6 +21,22 @@ interface Invitation {
   accepted_at: string | null;
 }
 
+interface AiStats {
+  sources: {
+    aiEstimates:   { cached: number; keyConfigured: boolean };
+    usda:          { cached: number; keyConfigured: boolean };
+    openFoodFacts: { cached: number; keyConfigured: boolean };
+    calorieNinja:  { cached: number; keyConfigured: boolean };
+  };
+  totalCachedFoods: number;
+  gemini: {
+    model: string;
+    freeTierDailyLimit: number | null;
+    keyConfigured: boolean;
+    note: string;
+  };
+}
+
 export function AdminPage() {
   const { register, handleSubmit, reset, formState: { errors } } = useForm<InviteForm>({
     resolver: zodResolver(inviteSchema),
@@ -33,6 +48,15 @@ export function AdminPage() {
       const { data } = await apiClient.get("/admin/invitations");
       return data.data;
     },
+  });
+
+  const { data: aiStats, isLoading: statsLoading } = useQuery<AiStats>({
+    queryKey: ["admin-ai-stats"],
+    queryFn: async () => {
+      const { data } = await apiClient.get("/admin/ai-stats");
+      return data.data;
+    },
+    refetchInterval: 60_000, // refresh every minute
   });
 
   const invite = useMutation({
@@ -59,6 +83,70 @@ export function AdminPage() {
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 py-4 pb-24 space-y-4">
+
+        {/* AI & Data Sources Stats */}
+        <div className="card space-y-4">
+          <h3 className="font-semibold text-gray-800 flex items-center gap-2">
+            <Sparkles size={16} className="text-primary-500" />
+            AI &amp; Data Sources
+          </h3>
+
+          {statsLoading ? (
+            <SkeletonLoader rows={3} />
+          ) : aiStats ? (
+            <>
+              {/* Gemini model row */}
+              <div className="bg-primary-50 rounded-xl px-4 py-3 space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-primary-700">Gemini AI Model</span>
+                  <span className={`flex items-center gap-1 text-xs font-medium ${aiStats.gemini.keyConfigured ? "text-green-600" : "text-red-500"}`}>
+                    {aiStats.gemini.keyConfigured ? <Check size={12} /> : <X size={12} />}
+                    {aiStats.gemini.keyConfigured ? "Key set" : "No key"}
+                  </span>
+                </div>
+                <p className="text-sm font-bold text-primary-800">{aiStats.gemini.model}</p>
+                {aiStats.gemini.freeTierDailyLimit && (
+                  <p className="text-xs text-primary-600">
+                    Free tier: <span className="font-semibold">{aiStats.gemini.freeTierDailyLimit.toLocaleString()} requests / day</span>
+                  </p>
+                )}
+                <p className="text-xs text-primary-500">{aiStats.gemini.note}</p>
+              </div>
+
+              {/* Cached count summary */}
+              <div className="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-2.5">
+                <div className="flex items-center gap-2">
+                  <Database size={14} className="text-gray-400" />
+                  <span className="text-xs font-semibold text-gray-600">Total foods cached</span>
+                </div>
+                <span className="text-sm font-bold text-gray-800">{aiStats.totalCachedFoods.toLocaleString()}</span>
+              </div>
+
+              {/* Per-source breakdown */}
+              <div className="space-y-2">
+                {[
+                  { label: "AI Estimates (Gemini)", count: aiStats.sources.aiEstimates.cached, key: aiStats.sources.aiEstimates.keyConfigured, color: "text-violet-600", bg: "bg-violet-50" },
+                  { label: "USDA FoodData Central", count: aiStats.sources.usda.cached, key: aiStats.sources.usda.keyConfigured, color: "text-blue-600", bg: "bg-blue-50" },
+                  { label: "Open Food Facts", count: aiStats.sources.openFoodFacts.cached, key: aiStats.sources.openFoodFacts.keyConfigured, color: "text-green-600", bg: "bg-green-50" },
+                  { label: "CalorieNinja (Indian dishes)", count: aiStats.sources.calorieNinja.cached, key: aiStats.sources.calorieNinja.keyConfigured, color: "text-orange-600", bg: "bg-orange-50" },
+                ].map(({ label, count, key, color, bg }) => (
+                  <div key={label} className={`${bg} rounded-xl px-3 py-2 flex items-center justify-between`}>
+                    <div className="flex items-center gap-2">
+                      <span className={`flex items-center justify-center w-4 h-4 rounded-full ${key ? "bg-green-100" : "bg-red-100"}`}>
+                        {key ? <Check size={10} className="text-green-600" /> : <X size={10} className="text-red-500" />}
+                      </span>
+                      <span className={`text-xs font-medium ${color}`}>{label}</span>
+                    </div>
+                    <span className={`text-sm font-bold ${color}`}>{count.toLocaleString()} cached</span>
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : (
+            <p className="text-sm text-gray-400 text-center py-2">Could not load stats</p>
+          )}
+        </div>
+
         {/* Invite form */}
         <div className="card">
           <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">

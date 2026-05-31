@@ -26,7 +26,7 @@ export const config = {
   },
 
   usda: {
-    apiKey: optionalEnv("USDA_API_KEY"),
+    apiKey: optionalEnv("USDA_FDC_API_KEY"),
   },
 
   calorieNinja: {

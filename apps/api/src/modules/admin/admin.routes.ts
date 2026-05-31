@@ -5,6 +5,7 @@ import {
   inviteUserController,
   getInvitationsController,
   updateUserStatusController,
+  getAiStatsController,
 } from "./admin.controller.js";
 
 export const adminRouter = Router();
@@ -15,3 +16,4 @@ adminRouter.use(adminMiddleware);
 adminRouter.post("/invitations", inviteUserController);
 adminRouter.get("/invitations", getInvitationsController);
 adminRouter.patch("/users/:userId/status", updateUserStatusController);
+adminRouter.get("/ai-stats", getAiStatsController);
