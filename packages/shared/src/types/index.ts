@@ -11,6 +11,7 @@ export type FoodType = "SYSTEM" | "EXTERNAL" | "USER_MANUAL" | "RECIPE";
 export type SourceType =
   | "INDIAN_REFERENCE"
   | "USDA_FDC"
+  | "OPEN_FOOD_FACTS"
   | "USER_MANUAL"
   | "USER_RECIPE";
 

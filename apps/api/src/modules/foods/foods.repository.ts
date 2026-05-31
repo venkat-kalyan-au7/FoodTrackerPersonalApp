@@ -327,3 +327,51 @@ export async function cacheAiFood(
   if (error) throw new Error(`Failed to cache AI food: ${error.message}`);
   return getFoodById(adminClient, inserted.id) as Promise<Food>;
 }
+
+export async function cacheFoodFromOFF(
+  adminClient: SupabaseClient,
+  offId: string,
+  name: string,
+  caloriesPer100g: number,
+  proteinPer100g: number | null,
+  carbsPer100g: number | null,
+  fatPer100g: number | null,
+  fiberPer100g: number | null,
+  servingSizeG: number | null
+): Promise<Food> {
+  const { data: existing } = await adminClient
+    .from("foods")
+    .select("*")
+    .eq("source_type", "OPEN_FOOD_FACTS")
+    .eq("source_reference_id", offId)
+    .is("owner_user_id", null)
+    .single();
+
+  if (existing) {
+    return getFoodById(adminClient, existing.id) as Promise<Food>;
+  }
+
+  const { data: inserted, error } = await adminClient
+    .from("foods")
+    .insert({
+      owner_user_id: null,
+      name,
+      normalized_name: normalizeText(name),
+      food_type: "EXTERNAL",
+      source_type: "OPEN_FOOD_FACTS",
+      source_reference_id: offId,
+      calories_per_100g: caloriesPer100g,
+      protein_per_100g: proteinPer100g,
+      carbs_per_100g: carbsPer100g,
+      fat_per_100g: fatPer100g,
+      fiber_per_100g: fiberPer100g,
+      default_serving_weight_g: servingSizeG,
+      is_verified: false,
+      requires_variation_warning: false,
+    })
+    .select()
+    .single();
+
+  if (error) throw new Error(`Failed to cache Open Food Facts food: ${error.message}`);
+  return getFoodById(adminClient, inserted.id) as Promise<Food>;
+}

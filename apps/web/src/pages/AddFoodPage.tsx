@@ -323,6 +323,21 @@ export function AddFoodPage() {
 
       {/* Results */}
       <div className="flex-1 overflow-y-auto pb-24">
+        {/* AI estimate button — always visible at top when user has typed a query */}
+        {query.trim() && (
+          <div className="px-4 pt-3 pb-1">
+            <button
+              onClick={handleEstimate}
+              disabled={estimateFood.isPending}
+              className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-gradient-to-r from-primary-600 to-primary-500 text-white font-semibold text-sm shadow-sm active:opacity-90"
+            >
+              {estimateFood.isPending
+                ? <><Loader2 size={15} className="animate-spin" /> Estimating with AI…</>
+                : <><Sparkles size={15} /> Estimate "{query}" with AI</>}
+            </button>
+          </div>
+        )}
+
         {searching ? (
           <div className="px-4 mt-2">
             <SkeletonLoader rows={4} />
@@ -334,6 +349,11 @@ export function AddFoodPage() {
                 Recent
               </p>
             )}
+            {query.trim() && (
+              <p className="text-xs font-semibold text-gray-400 py-2 uppercase tracking-wide">
+                Search results
+              </p>
+            )}
             {listToShow.map((food) => (
               <FoodCard
                 key={food.id}
@@ -343,19 +363,6 @@ export function AddFoodPage() {
                 isFavourited={favouriteIds.has(food.id)}
               />
             ))}
-            {query.trim() && (
-              <div className="py-4">
-                <button
-                  onClick={handleEstimate}
-                  disabled={estimateFood.isPending}
-                  className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl border-2 border-dashed border-primary-300 text-primary-600 font-medium text-sm active:bg-primary-50"
-                >
-                  {estimateFood.isPending
-                    ? <><Loader2 size={16} className="animate-spin" /> Estimating…</>
-                    : <><Sparkles size={16} /> Estimate "{query}" with AI</>}
-                </button>
-              </div>
-            )}
           </div>
         ) : query.trim() ? (
           <div className="px-4">
@@ -363,15 +370,6 @@ export function AddFoodPage() {
               title="No results found"
               description={`Try searching in English or Telugu. e.g. "Pappu" for dal.`}
             />
-            <button
-              onClick={handleEstimate}
-              disabled={estimateFood.isPending}
-              className="w-full flex items-center justify-center gap-2 py-3.5 px-4 rounded-xl bg-primary-600 text-white font-semibold text-sm mt-2"
-            >
-              {estimateFood.isPending
-                ? <><Loader2 size={16} className="animate-spin" /> Estimating nutrition…</>
-                : <><Sparkles size={16} /> Estimate "{query}" with AI</>}
-            </button>
           </div>
         ) : (
           <EmptyState

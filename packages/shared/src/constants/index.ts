@@ -4,6 +4,7 @@ export const FOOD_TYPES = ["SYSTEM", "EXTERNAL", "USER_MANUAL", "RECIPE"] as con
 export const SOURCE_TYPES = [
   "INDIAN_REFERENCE",
   "USDA_FDC",
+  "OPEN_FOOD_FACTS",
   "USER_MANUAL",
   "USER_RECIPE",
 ] as const;
@@ -16,6 +17,7 @@ export const AI_CONFIDENCE = {
 export const SOURCE_DISPLAY_LABELS: Record<string, string> = {
   INDIAN_REFERENCE: "Verified Indian Food",
   USDA_FDC: "USDA FoodData Central",
+  OPEN_FOOD_FACTS: "Open Food Facts",
   USER_MANUAL: "Manual Entry",
   USER_RECIPE: "My Recipe",
   EXTERNAL: "External Nutrition Match",

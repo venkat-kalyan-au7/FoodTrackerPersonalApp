@@ -5,9 +5,11 @@ import {
   getFoodById,
   createManualFood,
   cacheFoodFromUsda,
+  cacheFoodFromOFF,
   cacheAiFood,
 } from "./foods.repository.js";
 import { searchUsdaFoods } from "../../integrations/usdaFoodDataCentral/usda.service.js";
+import { searchOpenFoodFacts } from "../../integrations/openFoodFacts/off.service.js";
 import { getAiService } from "../../integrations/gemini/gemini.service.js";
 import { getAdminSupabaseClient } from "../../integrations/supabase/client.js";
 import { CreateManualFood } from "./foods.schemas.js";
@@ -25,14 +27,59 @@ export async function searchFoods(
     return localResults;
   }
 
-  // Second pass: try USDA external API
+  const adminClient = getAdminSupabaseClient();
+
+  // Second pass: Open Food Facts (Indian + global packaged foods, no API key)
+  try {
+    const offResults = await searchOpenFoodFacts(query, 5);
+    for (const off of offResults) {
+      if (!off.caloriesPer100g) continue;
+      try {
+        const cached = await cacheFoodFromOFF(
+          adminClient,
+          off.offId,
+          off.name,
+          off.caloriesPer100g,
+          off.proteinPer100g,
+          off.carbsPer100g,
+          off.fatPer100g,
+          off.fiberPer100g,
+          off.servingSizeG
+        );
+        if (!localResults.find((r) => r.id === cached.id)) {
+          localResults.push({
+            id: cached.id,
+            name: cached.name,
+            foodType: cached.foodType,
+            sourceType: cached.sourceType,
+            caloriesPer100g: cached.caloriesPer100g,
+            proteinPer100g: cached.proteinPer100g,
+            carbsPer100g: cached.carbsPer100g,
+            fatPer100g: cached.fatPer100g,
+            fiberPer100g: cached.fiberPer100g,
+            defaultServingName: cached.defaultServingName,
+            defaultServingWeightG: cached.defaultServingWeightG,
+            isVerified: cached.isVerified,
+            requiresVariationWarning: cached.requiresVariationWarning,
+            imageUrl: cached.imagePath,
+            description: cached.description,
+          });
+        }
+      } catch {
+        // best-effort cache
+      }
+    }
+  } catch {
+    // OFF unavailable, continue
+  }
+
+  // Third pass: USDA FoodData Central (US database, useful for generic items)
   let usdaResults: Awaited<ReturnType<typeof searchUsdaFoods>> = [];
   try {
     usdaResults = await searchUsdaFoods(query, 5);
   } catch {
     // USDA API unavailable or key invalid — continue with local results only
   }
-  const adminClient = getAdminSupabaseClient();
 
   for (const usdaFood of usdaResults) {
     if (!usdaFood.caloriesPer100g) continue;
@@ -172,7 +219,35 @@ export async function estimateAndCacheFood(
 ): Promise<FoodSearchResult> {
   const adminClient = getAdminSupabaseClient();
 
-  // 1. Try USDA first
+  // 1. Try Gemini AI first — most accurate for Indian foods
+  const aiService = getAiService();
+  if (aiService) {
+    try {
+      const estimate = await aiService.estimateFoodNutrition(query);
+      const food = await cacheAiFood(adminClient, query, estimate);
+      return {
+        id: food.id,
+        name: food.name,
+        foodType: food.foodType,
+        sourceType: food.sourceType,
+        caloriesPer100g: food.caloriesPer100g,
+        proteinPer100g: food.proteinPer100g,
+        carbsPer100g: food.carbsPer100g,
+        fatPer100g: food.fatPer100g,
+        fiberPer100g: food.fiberPer100g,
+        defaultServingName: food.defaultServingName,
+        defaultServingWeightG: food.defaultServingWeightG,
+        isVerified: food.isVerified,
+        requiresVariationWarning: food.requiresVariationWarning,
+        imageUrl: food.imagePath,
+        description: food.description,
+      };
+    } catch {
+      // AI failed, fall through to USDA
+    }
+  }
+
+  // 2. Fallback: USDA (if AI unavailable or failed)
   try {
     const usdaResults = await searchUsdaFoods(query, 1);
     if (usdaResults.length > 0 && usdaResults[0].caloriesPer100g) {
@@ -207,33 +282,8 @@ export async function estimateAndCacheFood(
       };
     }
   } catch {
-    // USDA unavailable, fall through to AI
+    // USDA unavailable
   }
 
-  // 2. Try Gemini AI estimation
-  const aiService = getAiService();
-  if (!aiService) {
-    throw new Error("No AI service configured. Please add GEMINI_API_KEY and set ENABLE_AI_FOOD_MATCHING=true");
-  }
-
-  const estimate = await aiService.estimateFoodNutrition(query);
-  const food = await cacheAiFood(adminClient, query, estimate);
-
-  return {
-    id: food.id,
-    name: food.name,
-    foodType: food.foodType,
-    sourceType: food.sourceType,
-    caloriesPer100g: food.caloriesPer100g,
-    proteinPer100g: food.proteinPer100g,
-    carbsPer100g: food.carbsPer100g,
-    fatPer100g: food.fatPer100g,
-    fiberPer100g: food.fiberPer100g,
-    defaultServingName: food.defaultServingName,
-    defaultServingWeightG: food.defaultServingWeightG,
-    isVerified: food.isVerified,
-    requiresVariationWarning: food.requiresVariationWarning,
-    imageUrl: food.imagePath,
-    description: food.description,
-  };
+  throw new Error("Could not estimate nutrition. Please add GEMINI_API_KEY to enable AI estimation.");
 }
