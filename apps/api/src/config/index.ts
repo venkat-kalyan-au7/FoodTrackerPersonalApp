@@ -25,6 +25,14 @@ export const config = {
     serviceRoleKey: requireEnv("SUPABASE_SERVICE_ROLE_KEY"),
   },
 
+  usda: {
+    apiKey: optionalEnv("USDA_API_KEY"),
+  },
+
+  calorieNinja: {
+    apiKey: optionalEnv("CALORIE_NINJA_API_KEY"),
+  },
+
   ai: {
     enabled: optionalEnv("ENABLE_AI_FOOD_MATCHING", "false") === "true",
     provider: optionalEnv("AI_PROVIDER", "GEMINI"),

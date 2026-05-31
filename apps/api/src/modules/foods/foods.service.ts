@@ -5,15 +5,40 @@ import {
   getFoodById,
   createManualFood,
   cacheFoodFromOFF,
+  cacheFoodFromUsda,
   cacheAiFood,
   getCachedAiFood,
+  cacheCalorieNinjaFood,
 } from "./foods.repository.js";
 import { searchOpenFoodFacts } from "../../integrations/openFoodFacts/off.service.js";
+import { searchUsda } from "../../integrations/usdaFoodDataCentral/usda.service.js";
+import { searchCalorieNinja } from "../../integrations/calorieNinja/ninja.service.js";
 import { GeminiAiFoodMatchingService, getAiService } from "../../integrations/gemini/gemini.service.js";
 import { config } from "../../config/index.js";
 import { createError } from "../../middleware/error.middleware.js";
 import { getAdminSupabaseClient } from "../../integrations/supabase/client.js";
 import { CreateManualFood } from "./foods.schemas.js";
+
+// Map a cached Food row → FoodSearchResult shape
+function mapFood(food: Food): FoodSearchResult {
+  return {
+    id: food.id,
+    name: food.name,
+    foodType: food.foodType,
+    sourceType: food.sourceType,
+    caloriesPer100g: food.caloriesPer100g,
+    proteinPer100g: food.proteinPer100g,
+    carbsPer100g: food.carbsPer100g,
+    fatPer100g: food.fatPer100g,
+    fiberPer100g: food.fiberPer100g,
+    defaultServingName: food.defaultServingName,
+    defaultServingWeightG: food.defaultServingWeightG,
+    isVerified: food.isVerified,
+    requiresVariationWarning: food.requiresVariationWarning,
+    imageUrl: food.imagePath,
+    description: food.description,
+  };
+}
 
 export async function searchFoods(
   userClient: SupabaseClient,
@@ -21,7 +46,7 @@ export async function searchFoods(
   query: string,
   limit = 20
 ): Promise<FoodSearchResult[]> {
-  // First pass: search locally
+  // Pass 1: local DB (Indian reference foods, user recipes, favourites, recent)
   const localResults = await searchFoodsInDb(userClient, userId, query, limit);
 
   if (localResults.length >= 5) {
@@ -30,48 +55,65 @@ export async function searchFoods(
 
   const adminClient = getAdminSupabaseClient();
 
-  // Second pass: Open Food Facts — India region first, then global (no API key)
-  try {
-    const offResults = await searchOpenFoodFacts(query, 10);
-    for (const off of offResults) {
+  // Pass 2: USDA FoodData Central + Open Food Facts India/Global — run in parallel
+  const [usdaSettled, offSettled] = await Promise.allSettled([
+    config.usda.apiKey
+      ? searchUsda(query, config.usda.apiKey, 5)
+      : Promise.resolve([]),
+    searchOpenFoodFacts(query, 10),
+  ]);
+
+  // Merge USDA results
+  if (usdaSettled.status === "fulfilled") {
+    for (const usda of usdaSettled.value) {
+      if (!usda.caloriesPer100g) continue;
+      try {
+        const food = await cacheFoodFromUsda(
+          adminClient, usda.fdcId, usda.name,
+          usda.caloriesPer100g, usda.proteinPer100g, usda.carbsPer100g,
+          usda.fatPer100g, usda.fiberPer100g, null
+        );
+        if (!localResults.find((r) => r.id === food.id)) {
+          localResults.push(mapFood(food));
+        }
+      } catch { /* best-effort */ }
+    }
+  }
+
+  // Merge Open Food Facts results
+  if (offSettled.status === "fulfilled") {
+    for (const off of offSettled.value) {
       if (!off.caloriesPer100g) continue;
       try {
-        const cached = await cacheFoodFromOFF(
-          adminClient,
-          off.offId,
-          off.name,
-          off.caloriesPer100g,
-          off.proteinPer100g,
-          off.carbsPer100g,
-          off.fatPer100g,
-          off.fiberPer100g,
-          off.servingSizeG
+        const food = await cacheFoodFromOFF(
+          adminClient, off.offId, off.name,
+          off.caloriesPer100g, off.proteinPer100g, off.carbsPer100g,
+          off.fatPer100g, off.fiberPer100g, off.servingSizeG
         );
-        if (!localResults.find((r) => r.id === cached.id)) {
-          localResults.push({
-            id: cached.id,
-            name: cached.name,
-            foodType: cached.foodType,
-            sourceType: cached.sourceType,
-            caloriesPer100g: cached.caloriesPer100g,
-            proteinPer100g: cached.proteinPer100g,
-            carbsPer100g: cached.carbsPer100g,
-            fatPer100g: cached.fatPer100g,
-            fiberPer100g: cached.fiberPer100g,
-            defaultServingName: cached.defaultServingName,
-            defaultServingWeightG: cached.defaultServingWeightG,
-            isVerified: cached.isVerified,
-            requiresVariationWarning: cached.requiresVariationWarning,
-            imageUrl: cached.imagePath,
-            description: cached.description,
-          });
+        if (!localResults.find((r) => r.id === food.id)) {
+          localResults.push(mapFood(food));
         }
-      } catch {
-        // best-effort cache
-      }
+      } catch { /* best-effort */ }
     }
-  } catch {
-    // OFF unavailable, continue
+  }
+
+  // Pass 3: CalorieNinja — great for Indian dish names (butter chicken, biryani, dal makhani…)
+  if (config.calorieNinja.apiKey && localResults.length < 5) {
+    try {
+      const ninjaResults = await searchCalorieNinja(query, config.calorieNinja.apiKey);
+      for (const ninja of ninjaResults) {
+        try {
+          const food = await cacheCalorieNinjaFood(
+            adminClient, ninja.name,
+            ninja.caloriesPer100g, ninja.proteinPer100g, ninja.carbsPer100g,
+            ninja.fatPer100g, ninja.fiberPer100g, ninja.servingSizeG
+          );
+          if (!localResults.find((r) => r.id === food.id)) {
+            localResults.push(mapFood(food));
+          }
+        } catch { /* best-effort */ }
+      }
+    } catch { /* CalorieNinja unavailable */ }
   }
 
   // No automatic AI calls — user must explicitly click "Estimate with AI"

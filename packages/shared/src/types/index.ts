@@ -12,6 +12,7 @@ export type SourceType =
   | "INDIAN_REFERENCE"
   | "USDA_FDC"
   | "OPEN_FOOD_FACTS"
+  | "CALORIE_NINJA"
   | "USER_MANUAL"
   | "USER_RECIPE";
 

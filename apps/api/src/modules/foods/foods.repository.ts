@@ -394,3 +394,53 @@ export async function cacheFoodFromOFF(
   if (error) throw new Error(`Failed to cache Open Food Facts food: ${error.message}`);
   return getFoodById(adminClient, inserted.id) as Promise<Food>;
 }
+
+export async function cacheCalorieNinjaFood(
+  adminClient: SupabaseClient,
+  name: string,
+  caloriesPer100g: number,
+  proteinPer100g: number | null,
+  carbsPer100g: number | null,
+  fatPer100g: number | null,
+  fiberPer100g: number | null,
+  servingSizeG: number | null
+): Promise<Food> {
+  const normalized = normalizeText(name);
+  const refId = `ninja:${normalized}`;
+
+  const { data: existing } = await adminClient
+    .from("foods")
+    .select("*")
+    .eq("source_type", "CALORIE_NINJA")
+    .eq("source_reference_id", refId)
+    .is("owner_user_id", null)
+    .maybeSingle();
+
+  if (existing) {
+    return getFoodById(adminClient, existing.id) as Promise<Food>;
+  }
+
+  const { data: inserted, error } = await adminClient
+    .from("foods")
+    .insert({
+      owner_user_id: null,
+      name,
+      normalized_name: normalized,
+      food_type: "EXTERNAL",
+      source_type: "CALORIE_NINJA",
+      source_reference_id: refId,
+      calories_per_100g: caloriesPer100g,
+      protein_per_100g: proteinPer100g,
+      carbs_per_100g: carbsPer100g,
+      fat_per_100g: fatPer100g,
+      fiber_per_100g: fiberPer100g,
+      default_serving_weight_g: servingSizeG,
+      is_verified: false,
+      requires_variation_warning: true,
+    })
+    .select()
+    .single();
+
+  if (error) throw new Error(`Failed to cache CalorieNinja food: ${error.message}`);
+  return getFoodById(adminClient, inserted.id) as Promise<Food>;
+}
