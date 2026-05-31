@@ -275,6 +275,25 @@ export async function cacheFoodFromUsda(
   return getFoodById(adminClient, inserted.id) as Promise<Food>;
 }
 
+/**
+ * Return a previously-cached AI food for this query without hitting Gemini.
+ * Checks source_reference_id = 'ai:<normalized-query>'.
+ */
+export async function getCachedAiFood(
+  adminClient: SupabaseClient,
+  query: string
+): Promise<Food | null> {
+  const refId = `ai:${normalizeText(query)}`;
+  const { data } = await adminClient
+    .from("foods")
+    .select("*")
+    .eq("source_reference_id", refId)
+    .is("owner_user_id", null)
+    .maybeSingle();
+  if (!data) return null;
+  return getFoodById(adminClient, data.id);
+}
+
 export async function cacheAiFood(
   adminClient: SupabaseClient,
   query: string,

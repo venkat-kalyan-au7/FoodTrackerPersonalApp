@@ -6,6 +6,7 @@ import {
   createManualFood,
   cacheFoodFromOFF,
   cacheAiFood,
+  getCachedAiFood,
 } from "./foods.repository.js";
 import { searchOpenFoodFacts } from "../../integrations/openFoodFacts/off.service.js";
 import { GeminiAiFoodMatchingService, getAiService } from "../../integrations/gemini/gemini.service.js";
@@ -139,14 +140,36 @@ export async function getRecentFoods(
   return results;
 }
 
-// Estimate nutrition for any food using USDA first, then Gemini AI.
+// Estimate nutrition for any food using AI.
 // Returns a FoodSearchResult with the food cached in the DB.
 export async function estimateAndCacheFood(
   query: string
 ): Promise<FoodSearchResult> {
   const adminClient = getAdminSupabaseClient();
 
-  // 1. Try Gemini AI first — most accurate for Indian foods
+  // 0. Return cached result if this query was already estimated before — no Gemini call needed
+  const cached = await getCachedAiFood(adminClient, query);
+  if (cached) {
+    return {
+      id: cached.id,
+      name: cached.name,
+      foodType: cached.foodType,
+      sourceType: cached.sourceType,
+      caloriesPer100g: cached.caloriesPer100g,
+      proteinPer100g: cached.proteinPer100g,
+      carbsPer100g: cached.carbsPer100g,
+      fatPer100g: cached.fatPer100g,
+      fiberPer100g: cached.fiberPer100g,
+      defaultServingName: cached.defaultServingName,
+      defaultServingWeightG: cached.defaultServingWeightG,
+      isVerified: cached.isVerified,
+      requiresVariationWarning: cached.requiresVariationWarning,
+      imageUrl: cached.imagePath,
+      description: cached.description,
+    };
+  }
+
+  // 1. Call Gemini AI — most accurate for Indian foods
   // Use key directly so this always works when GEMINI_API_KEY is set,
   // regardless of the ENABLE_AI_FOOD_MATCHING feature flag.
   const aiService = config.ai.geminiApiKey
