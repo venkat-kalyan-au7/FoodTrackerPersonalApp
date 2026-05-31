@@ -89,6 +89,11 @@ export async function estimateFoodController(
     const food = await estimateAndCacheFood(query);
     res.json({ success: true, data: food });
   } catch (err) {
+    const appErr = err as { statusCode?: number; isOperational?: boolean; message?: string };
+    if (appErr.isOperational && appErr.statusCode) {
+      res.status(appErr.statusCode).json({ success: false, error: appErr.message });
+      return;
+    }
     next(err);
   }
 }

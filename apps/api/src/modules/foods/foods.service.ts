@@ -12,6 +12,7 @@ import { searchUsdaFoods } from "../../integrations/usdaFoodDataCentral/usda.ser
 import { searchOpenFoodFacts } from "../../integrations/openFoodFacts/off.service.js";
 import { getAiService, GeminiAiFoodMatchingService } from "../../integrations/gemini/gemini.service.js";
 import { config } from "../../config/index.js";
+import { createError } from "../../middleware/error.middleware.js";
 import { getAdminSupabaseClient } from "../../integrations/supabase/client.js";
 import { CreateManualFood } from "./foods.schemas.js";
 
@@ -226,6 +227,9 @@ export async function estimateAndCacheFood(
   const aiService = config.ai.geminiApiKey
     ? new GeminiAiFoodMatchingService()
     : getAiService();
+
+  let aiErrorMessage: string | null = null;
+
   if (aiService) {
     try {
       const estimate = await aiService.estimateFoodNutrition(query);
@@ -247,8 +251,9 @@ export async function estimateAndCacheFood(
         imageUrl: food.imagePath,
         description: food.description,
       };
-    } catch {
-      // AI failed, fall through to USDA
+    } catch (aiErr) {
+      // Capture the real AI error so we can surface it if USDA also fails
+      aiErrorMessage = aiErr instanceof Error ? aiErr.message : String(aiErr);
     }
   }
 
@@ -287,8 +292,15 @@ export async function estimateAndCacheFood(
       };
     }
   } catch {
-    // USDA unavailable
+    // USDA unavailable, continue to error
   }
 
-  throw new Error("Could not estimate nutrition. Please set GEMINI_API_KEY in your server environment variables.");
+  // Both AI and USDA failed — return a clear 422 with the real reason
+  if (!config.ai.geminiApiKey) {
+    throw createError("GEMINI_API_KEY is not set on the server. Please add it to your environment variables.", 503);
+  }
+  if (aiErrorMessage) {
+    throw createError(`AI estimation failed: ${aiErrorMessage}`, 422);
+  }
+  throw createError(`Could not estimate nutrition for "${query}". The AI service returned no result.`, 422);
 }

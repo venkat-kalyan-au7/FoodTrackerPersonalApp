@@ -95,8 +95,9 @@ export function CreateRecipePage() {
     try {
       const food = await estimateFood.mutateAsync(ingredientQuery.trim());
       handlePickFood(food, index);
-    } catch {
-      toast.error("Could not estimate — check your Gemini API key.");
+    } catch (err: unknown) {
+      const serverMsg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
+      toast.error(serverMsg ?? "AI estimation failed. Please try again.");
     }
   };
 

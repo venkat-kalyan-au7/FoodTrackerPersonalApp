@@ -283,8 +283,9 @@ export function AddFoodPage() {
     try {
       const food = await estimateFood.mutateAsync(query.trim());
       handleSelectFood(food);
-    } catch {
-      toast.error("Could not estimate nutrition. Check your Gemini API key in settings.");
+    } catch (err: unknown) {
+      const serverMsg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
+      toast.error(serverMsg ?? "AI estimation failed. Please try again.");
     }
   };
 
