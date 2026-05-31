@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { format, addDays, subDays } from "date-fns";
-import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, BarChart2 } from "lucide-react";
 import { useDashboard } from "../hooks/useDashboard";
 import { CalorieSummary } from "../components/CalorieSummary";
 import { CardSkeleton } from "../components/SkeletonLoader";
@@ -31,13 +31,22 @@ export function DashboardPage() {
       <div className="bg-white border-b border-gray-100 px-4 pt-safe">
         <div className="flex items-center justify-between h-14">
           <h1 className="text-lg font-bold text-gray-900">Dashboard</h1>
-          <Link
-            to="/add-food"
-            className="flex items-center gap-1.5 bg-primary-600 text-white text-sm font-semibold px-3.5 py-1.5 rounded-full active:scale-95 transition-all shadow-sm"
-          >
-            <Plus size={14} strokeWidth={2.5} />
-            Add
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link
+              to="/weekly"
+              className="flex items-center gap-1 text-gray-500 text-sm font-medium px-2.5 py-1.5 rounded-full active:bg-gray-100"
+            >
+              <BarChart2 size={16} strokeWidth={2} />
+              <span className="text-xs font-semibold">Weekly</span>
+            </Link>
+            <Link
+              to="/add-food"
+              className="flex items-center gap-1.5 bg-primary-600 text-white text-sm font-semibold px-3.5 py-1.5 rounded-full active:scale-95 transition-all shadow-sm"
+            >
+              <Plus size={14} strokeWidth={2.5} />
+              Add
+            </Link>
+          </div>
         </div>
       </div>
 

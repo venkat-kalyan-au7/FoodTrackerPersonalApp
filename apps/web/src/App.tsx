@@ -12,6 +12,7 @@ import { CreateRecipePage } from "./pages/CreateRecipePage";
 import { RecipeDetailPage } from "./pages/RecipeDetailPage";
 import { ProfilePage } from "./pages/ProfilePage";
 import { AdminPage } from "./pages/AdminPage";
+import { WeeklyReportPage } from "./pages/WeeklyReportPage";
 import { useAuth } from "./contexts/AuthContext";
 
 function AppShell({ children }: { children: React.ReactNode }) {
@@ -125,6 +126,16 @@ export default function App() {
             <ProtectedRoute>
               <AppShell>
                 <AdminPage />
+              </AppShell>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/weekly"
+          element={
+            <ProtectedRoute>
+              <AppShell>
+                <WeeklyReportPage />
               </AppShell>
             </ProtectedRoute>
           }
